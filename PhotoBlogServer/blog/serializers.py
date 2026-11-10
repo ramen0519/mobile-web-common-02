@@ -10,7 +10,7 @@ class PostSerializer(serializers.ModelSerializer):
 class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Device
-        fields = ('token', 'kind', 'categories', 'minutes', 'enabled')
+        fields = ('token', 'kind', 'categories', 'minutes', 'enabled', 'report')
 
     def validate_categories(self, value):
         # 모르는 종류는 빼고 저장

@@ -23,6 +23,7 @@ class Device(models.Model):
     categories = models.CharField(max_length=100, blank=True, default='person')  # 알림 받을 종류 (person, animal, vehicle, object)
     minutes = models.PositiveIntegerField(default=5)  # 같은 물체는 n분에 한 번만 알림
     enabled = models.BooleanField(default=True)
+    report = models.BooleanField(default=True)  # 매일 감시 리포트 받기
     created_date = models.DateTimeField(default=timezone.now)
 
     def __str__(self):

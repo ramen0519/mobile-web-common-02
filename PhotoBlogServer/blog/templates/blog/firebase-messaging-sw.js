@@ -11,14 +11,16 @@ self.addEventListener('activate', function(event) {
 // FCM이 보낸 푸시를 받아 알림 띄우기 (탭을 닫아도 동작)
 self.addEventListener('push', function(event) {
     var data = event.data.json().data;
-    var image = self.location.origin + data.image;
+    var options = {body: data.body, data: {url: self.location.origin + '/alert/'}};
+    if (data.type == 'report') {
+        // 감시 리포트는 사진 없이, 누르면 리포트 페이지
+        options.data.url = self.location.origin + '/report/';
+    } else {
+        options.icon = self.location.origin + data.image;
+        options.image = self.location.origin + data.image;
+    }
     event.waitUntil(
-        self.registration.showNotification(data.title, {
-            body: data.body,
-            icon: image,
-            image: image,
-            data: {url: self.location.origin + '/alert/'}
-        }).then(function() {
+        self.registration.showNotification(data.title, options).then(function() {
             return clients.matchAll({type: 'window'});
         }).then(function(list) {
             // 알림 페이지가 열려 있으면 기록을 다시 불러오게 알려 줌

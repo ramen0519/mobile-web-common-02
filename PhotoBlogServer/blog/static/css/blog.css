@@ -82,3 +82,20 @@ h1, h2, h3, h4 {
     width: 160px;
     margin-right: 10px;
 }
+
+.report-numbers {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.report-number {
+    font-size: 28pt;
+    font-weight: bold;
+    color: #ff9400;
+    margin-bottom: 0;
+}
+
+.content h2, .content h3, .content h4 {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: bold;
+}

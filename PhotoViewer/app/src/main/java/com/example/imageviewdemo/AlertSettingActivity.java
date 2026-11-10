@@ -23,6 +23,7 @@ import java.util.List;
 // 알림 받을 종류(사람, 동물, 탈것, 그 외 물건)와 알림 간격(분) 설정
 public class AlertSettingActivity extends AppCompatActivity {
     SwitchCompat switchEnabled;
+    SwitchCompat switchReport;
     EditText editMinutes;
     ListView listCategories;
     List<String> names = new ArrayList<>();  // 서버에 저장하는 종류 이름 (person, animal, vehicle, object)
@@ -32,6 +33,7 @@ public class AlertSettingActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_alert_setting);
         switchEnabled = findViewById(R.id.switchEnabled);
+        switchReport = findViewById(R.id.switchReport);
         editMinutes = findViewById(R.id.editMinutes);
         listCategories = findViewById(R.id.listCategories);
 
@@ -55,7 +57,7 @@ public class AlertSettingActivity extends AppCompatActivity {
                 checked.add(names.get(i));
             }
         }
-        new SaveSetting(String.join(",", checked), Integer.parseInt(minutes), switchEnabled.isChecked()).execute();
+        new SaveSetting(String.join(",", checked), Integer.parseInt(minutes), switchEnabled.isChecked(), switchReport.isChecked()).execute();
     }
 
     // 종류 목록과 이 기기의 설정 불러오기
@@ -64,6 +66,7 @@ public class AlertSettingActivity extends AppCompatActivity {
         List<String> chosen = new ArrayList<>();
         int minutes;
         boolean enabled;
+        boolean report;
 
         @Override
         protected Boolean doInBackground(Void... voids) {
@@ -84,6 +87,7 @@ public class AlertSettingActivity extends AppCompatActivity {
                 chosen = Arrays.asList(device.getString("categories").split(","));
                 minutes = device.getInt("minutes");
                 enabled = device.getBoolean("enabled");
+                report = device.getBoolean("report");
                 return true;
             } catch (IOException | JSONException e) {
                 e.printStackTrace();
@@ -105,6 +109,7 @@ public class AlertSettingActivity extends AppCompatActivity {
             }
             editMinutes.setText(String.valueOf(minutes));
             switchEnabled.setChecked(enabled);
+            switchReport.setChecked(report);
         }
     }
 
@@ -112,11 +117,13 @@ public class AlertSettingActivity extends AppCompatActivity {
         String categories;
         int minutes;
         boolean enabled;
+        boolean report;
 
-        SaveSetting(String categories, int minutes, boolean enabled) {
+        SaveSetting(String categories, int minutes, boolean enabled, boolean report) {
             this.categories = categories;
             this.minutes = minutes;
             this.enabled = enabled;
+            this.report = report;
         }
 
         @Override
@@ -128,6 +135,7 @@ public class AlertSettingActivity extends AppCompatActivity {
                 json.put("categories", categories);
                 json.put("minutes", minutes);
                 json.put("enabled", enabled);
+                json.put("report", report);
                 AlertApi.request(AlertSettingActivity.this, "POST", "/api_root/Device/", json.toString());
                 return true;
             } catch (IOException | JSONException e) {
@@ -139,6 +147,9 @@ public class AlertSettingActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Boolean ok) {
             if (ok) {
+                // 매일 밤 리포트 예약도 설정에 맞춤
+                AlertApi.prefs(AlertSettingActivity.this).edit().putBoolean("report", report).apply();
+                ReportWorker.schedule(AlertSettingActivity.this, report);
                 Toast.makeText(getApplicationContext(), "저장했습니다", Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(getApplicationContext(), "저장하지 못했습니다", Toast.LENGTH_SHORT).show();

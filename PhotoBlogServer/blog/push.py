@@ -69,6 +69,7 @@ def send_alert(post):
         if len(names) > 1:
             title += ' 외 ' + str(len(names) - 1) + '개'
         data = {
+            'type': 'alert',
             'post_id': str(post.pk),
             'title': title,
             'body': ', '.join(ko_names) + ' · ' + timezone.localtime(post.created_date).strftime('%H:%M:%S'),

@@ -47,6 +47,13 @@
             android:text="알림 기록" />
     </LinearLayout>
 
+    <Button
+        android:id="@+id/btn_report"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:onClick="onClickReport"
+        android:text="감시 리포트" />
+
     <TextView
         android:id="@+id/textView"
         android:layout_width="match_parent"

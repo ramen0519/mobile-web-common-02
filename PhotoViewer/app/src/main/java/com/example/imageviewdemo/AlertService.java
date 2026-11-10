@@ -32,6 +32,11 @@ public class AlertService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(RemoteMessage message) {
         Map<String, String> data = message.getData();
+        if ("report".equals(data.get("type"))) {
+            // 서버에서 보낸 감시 리포트
+            ReportWorker.show(this, data.get("title"), data.get("body"));
+            return;
+        }
         String title = data.get("title");
         String body = data.get("body");
         String imageUrl = AlertApi.siteUrl(this) + data.get("image");

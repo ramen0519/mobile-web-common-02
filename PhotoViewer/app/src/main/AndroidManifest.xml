@@ -39,6 +39,9 @@
         <activity
             android:name=".AlertDetailActivity"
             android:exported="false" />
+        <activity
+            android:name=".ReportActivity"
+            android:exported="false" />
 
         <!--탐지 알림을 받는 서비스-->
         <service

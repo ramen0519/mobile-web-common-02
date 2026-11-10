@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from .serializers import PostSerializer, DeviceSerializer, AlertSerializer
 from .labels import CATEGORIES
 from .push import send_alert
+from .report import get_stats, clear_stats
 
 def post_list(request):
     posts = Post.objects.filter(
@@ -60,6 +61,7 @@ class BlogImages(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         post = serializer.save()
+        clear_stats()  # 감시 리포트 통계 다시 계산
         send_alert(post)  # 탐지 알림 보내기
 
 class DeviceViewSet(viewsets.ModelViewSet):
@@ -100,6 +102,27 @@ class AlertViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Upda
     def read_all(self, request):
         self.get_queryset().update(is_read=True)
         return Response({'result': 'ok'})
+
+class ReportViewSet(viewsets.ViewSet):
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        # 최근 7일 감지 통계
+        return Response(get_stats())
+
+    @action(detail=False)
+    def today(self, request):
+        # 오늘 하루 요약 (앱의 매일 밤 리포트 알림에 씀)
+        return Response(get_stats()['today'])
+
+@login_required
+def report_page(request):
+    stats = get_stats()
+    return render(request, 'blog/report.html', {
+        'stats': stats,
+        'stats_json': json.dumps(stats, ensure_ascii=False),
+    })
 
 @login_required
 def alert_setting(request):

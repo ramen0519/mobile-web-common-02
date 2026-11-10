@@ -1,0 +1,71 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+<h2>감시 리포트</h2>
+<p class="text-muted">{{ stats.start }} ~ {{ stats.end }} (최근 7일)</p>
+
+<div class="well">
+    <h4>오늘</h4>
+    <p>{{ stats.today.text }}</p>
+</div>
+
+<div class="row report-numbers">
+    <div class="col-xs-4">
+        <p class="report-number">{{ stats.total }}</p>
+        <p>최근 7일 감지</p>
+    </div>
+    <div class="col-xs-4">
+        <p class="report-number">{{ stats.today.total }}</p>
+        <p>오늘 감지</p>
+    </div>
+    <div class="col-xs-4">
+        <p class="report-number">{% if stats.peak_hour is not None %}{{ stats.peak_hour }}시{% else %}-{% endif %}</p>
+        <p>가장 많았던 시간</p>
+    </div>
+</div>
+
+<h4>시간대별 감지</h4>
+<canvas id="chart-hourly" height="120"></canvas>
+
+<h4>날짜별 감지</h4>
+<canvas id="chart-daily" height="120"></canvas>
+
+<h4>종류별 감지</h4>
+<canvas id="chart-category" height="120"></canvas>
+
+<h4>많이 감지된 물체</h4>
+<ol>
+    {% for item in stats.top_objects %}
+    <li>{{ item.ko }} ({{ item.name }}) · {{ item.count }}번</li>
+    {% empty %}
+    <li>아직 감지된 물체가 없습니다.</li>
+    {% endfor %}
+</ol>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
+<script>
+var stats = {{ stats_json|safe }};
+
+function barChart(id, labels, values) {
+    new Chart(document.getElementById(id), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{data: values, backgroundColor: '#ff9400'}]
+        },
+        options: {
+            plugins: {legend: {display: false}},
+            scales: {y: {beginAtZero: true, ticks: {precision: 0}}}
+        }
+    });
+}
+
+var hours = [];
+for (var i = 0; i < 24; i++) {
+    hours.push(i + '시');
+}
+barChart('chart-hourly', hours, stats.hourly);
+barChart('chart-daily', stats.daily.map(function(d) { return d.date; }), stats.daily.map(function(d) { return d.count; }));
+barChart('chart-category', stats.categories.map(function(c) { return c.ko; }), stats.categories.map(function(c) { return c.count; }));
+</script>
+{% endblock %}

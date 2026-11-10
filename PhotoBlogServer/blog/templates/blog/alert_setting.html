@@ -12,6 +12,9 @@
     <div class="checkbox">
         <label><input type="checkbox" id="enabled" checked> 알림 받기</label>
     </div>
+    <div class="checkbox">
+        <label><input type="checkbox" id="report" checked> 감시 리포트 알림 받기</label>
+    </div>
     <div class="form-group">
         <label for="minutes">같은 물체는 몇 분에 한 번 알릴까요?</label>
         <div class="input-group minutes-group">
@@ -61,6 +64,7 @@ function api(method, url, data) {
 // 서버에 저장된 설정을 화면에 표시
 function showSetting(device) {
     document.getElementById('enabled').checked = device.enabled;
+    document.getElementById('report').checked = device.report;
     document.getElementById('minutes').value = device.minutes;
     var categories = device.categories.split(',');
     document.querySelectorAll('[name=categories]').forEach(function(box) {
@@ -136,7 +140,8 @@ document.getElementById('alert-form').addEventListener('submit', function(e) {
         kind: 'web',
         categories: categories.join(','),
         minutes: minutes,
-        enabled: document.getElementById('enabled').checked
+        enabled: document.getElementById('enabled').checked,
+        report: document.getElementById('report').checked
     }).then(function(device) {
         showSetting(device);
         document.getElementById('save-result').textContent = '저장했습니다.';

@@ -6,6 +6,7 @@ router = routers.DefaultRouter()
 router.register('Post', views.BlogImages)
 router.register('Device', views.DeviceViewSet)
 router.register('Alert', views.AlertViewSet, basename='alert')
+router.register('Report', views.ReportViewSet, basename='report')
 
 urlpatterns = [
     path('', views.post_list, name='post_list'),
@@ -15,5 +16,6 @@ urlpatterns = [
     path('js_test/', views.js_test, name='js_test'),
     path('api_root/', include(router.urls)),
     path('alert/', views.alert_setting, name='alert_setting'),
+    path('report/', views.report_page, name='report_page'),
     path('firebase-messaging-sw.js', views.firebase_sw, name='firebase_sw'),
 ]

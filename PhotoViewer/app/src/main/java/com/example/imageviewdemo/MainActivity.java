@@ -96,6 +96,12 @@ public class MainActivity extends AppCompatActivity {
         // 이 기기의 FCM 토큰을 받아 서버에 등록
         FirebaseMessaging.getInstance().getToken()
                 .addOnSuccessListener(fcmToken -> new RegisterDevice().execute(fcmToken));
+        // 매일 밤 9시 감시 리포트 예약
+        ReportWorker.schedule(this, AlertApi.prefs(this).getBoolean("report", true));
+    }
+
+    public void onClickReport(View v) {
+        startActivity(new Intent(this, ReportActivity.class));
     }
 
     public void onClickAlertSetting(View v) {

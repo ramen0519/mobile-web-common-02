@@ -19,6 +19,13 @@
         android:layout_marginTop="12dp"
         android:text="알림 받기" />
 
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/switchReport"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="매일 밤 9시 감시 리포트 받기" />
+
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
