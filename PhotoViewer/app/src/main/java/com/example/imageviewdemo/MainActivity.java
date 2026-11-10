@@ -1,5 +1,8 @@
 package com.example.imageviewdemo;
 
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -19,6 +22,8 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -43,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
     TextView textView;
     String site_url = "http://10.0.2.2:8000";
     //String site_url = "https://ramen0519.pythonanywhere.com";
+    String token = "9b2d1bd1e00b4ac12669a37c7ad22ac663b7da14";
     JSONObject post_json;
     String imageUrl = null;
     Bitmap bmImg = null;
@@ -62,12 +68,42 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
+    // 알림 권한 요청 결과
+    ActivityResultLauncher<String> notificationPermission = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(),
+            granted -> {
+                if (!granted) {
+                    Toast.makeText(getApplicationContext(), "알림을 허용해야 탐지 알림을 받을 수 있습니다", Toast.LENGTH_LONG).show();
+                }
+            });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         //imgView = (ImageView) findViewById(R.id.imgView);
         textView = (TextView)findViewById(R.id.textView);
+
+        // 탐지 알림: 앱이 꺼져 있을 때도 쓰도록 서버 주소와 토큰 저장
+        AlertApi.prefs(this).edit()
+                .putString("site_url", site_url)
+                .putString("token", token)
+                .apply();
+        AlertApi.createChannel(this);
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS);
+        }
+        // 이 기기의 FCM 토큰을 받아 서버에 등록
+        FirebaseMessaging.getInstance().getToken()
+                .addOnSuccessListener(fcmToken -> new RegisterDevice().execute(fcmToken));
+    }
+
+    public void onClickAlertSetting(View v) {
+        startActivity(new Intent(this, AlertSettingActivity.class));
+    }
+
+    public void onClickAlertList(View v) {
+        startActivity(new Intent(this, AlertListActivity.class));
     }
 
     public void onClickDownload(View v) {
@@ -253,6 +289,26 @@ public class MainActivity extends AppCompatActivity {
                 taskDownload.execute(site_url + "/api_root/Post/");
             } else {
                 Toast.makeText(getApplicationContext(), "업로드 실패 (" + responseCode + ")", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private class RegisterDevice extends AsyncTask<String, Void, Boolean> {
+        @Override
+        protected Boolean doInBackground(String... tokens) {
+            try {
+                AlertApi.registerDevice(MainActivity.this, tokens[0]);
+                return true;
+            } catch (IOException | JSONException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(Boolean ok) {
+            if (!ok) {
+                Toast.makeText(getApplicationContext(), "탐지 알림 등록 실패 (서버 확인)", Toast.LENGTH_LONG).show();
             }
         }
     }

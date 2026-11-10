@@ -61,3 +61,24 @@ h1, h2, h3, h4 {
 .intruder-image-list {
     object-fit: cover;
 }
+
+.alert-form {
+    margin-bottom: 30px;
+}
+
+.minutes-group {
+    width: 150px;
+}
+
+.category-list {
+    margin-bottom: 15px;
+}
+
+.alert-item {
+    margin-bottom: 15px;
+}
+
+.alert-item img {
+    width: 160px;
+    margin-right: 10px;
+}

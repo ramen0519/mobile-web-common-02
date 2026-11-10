@@ -129,3 +129,17 @@ REST_FRAMEWORK = {
     ],
     'PAGE_SIZE': 10
 }
+
+LOGIN_URL = '/admin/login/'
+
+# 탐지 알림 (Firebase Cloud Messaging)
+FIREBASE_KEY_FILE = BASE_DIR / 'firebase_key.json'  # 서버용 비밀 키, git에 올리지 않음
+FIREBASE_CONFIG = {  # 웹 앱 설정값 (Firebase 콘솔 > 프로젝트 설정)
+    'apiKey': 'AIzaSyCO-4R8y6uoA2xJt9SAz-cexzdcA92VI2g',
+    'authDomain': 'photoblog-alert.firebaseapp.com',
+    'projectId': 'photoblog-alert',
+    'storageBucket': 'photoblog-alert.firebasestorage.app',
+    'messagingSenderId': '906894986316',
+    'appId': '1:906894986316:web:81f729ecf468486eddf8e9',
+}
+FIREBASE_VAPID_KEY = 'BEERhQjDzMbcEcP-R2HeNzG040a8adnwg5dbfMpS1f_qTQuWJZ-Jrnm7g0GsPIG666TLsVUYgz4BdRi6fFxqaa0'  # 웹 푸시 인증서 공개 키

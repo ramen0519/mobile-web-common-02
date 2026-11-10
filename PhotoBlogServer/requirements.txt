@@ -1,5 +1,17 @@
 asgiref==3.12.1
+certifi==2026.10.23
+cffi==2.1.1
+charset-normalizer==3.5.2
+cryptography==50.0.2
 Django==6.1.1
 djangorestframework==3.18.1
+google-auth==2.62.1
+idna==3.20
 pillow==12.3.0
+pyasn1==0.6.5
+pyasn1_modules==0.4.2
+pycparser==3.12
+requests==2.34.2
 sqlparse==0.6.0
+tzdata==2026.6
+urllib3==2.8.0

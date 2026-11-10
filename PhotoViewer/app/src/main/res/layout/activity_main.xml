@@ -27,6 +27,26 @@
             android:text="새로운 이미지 게시" />
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="53dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_alert_setting"
+            android:layout_width="198dp"
+            android:layout_height="50dp"
+            android:onClick="onClickAlertSetting"
+            android:text="알림 설정" />
+
+        <Button
+            android:id="@+id/btn_alert_list"
+            android:layout_width="195dp"
+            android:layout_height="50dp"
+            android:onClick="onClickAlertList"
+            android:text="알림 기록" />
+    </LinearLayout>
+
     <TextView
         android:id="@+id/textView"
         android:layout_width="match_parent"

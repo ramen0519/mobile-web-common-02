@@ -1,0 +1,173 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+<h2>탐지 알림 설정</h2>
+<div class="well">
+    <p id="status">이 브라우저는 아직 알림을 받지 않습니다.</p>
+    <button type="button" class="btn btn-warning" id="btn-subscribe">이 브라우저에서 알림 받기</button>
+</div>
+
+<form id="alert-form" class="alert-form">
+    {% csrf_token %}
+    <div class="checkbox">
+        <label><input type="checkbox" id="enabled" checked> 알림 받기</label>
+    </div>
+    <div class="form-group">
+        <label for="minutes">같은 물체는 몇 분에 한 번 알릴까요?</label>
+        <div class="input-group minutes-group">
+            <input type="number" class="form-control" id="minutes" min="0" value="5">
+            <span class="input-group-addon">분</span>
+        </div>
+        <p class="help-block">0으로 하면 감지될 때마다 알립니다.</p>
+    </div>
+    <label>알림 받을 종류</label>
+    <div class="category-list">
+        {% for name, ko, desc in categories %}
+        <div class="checkbox">
+            <label>
+                <input type="checkbox" name="categories" value="{{ name }}" {% if name == 'person' %}checked{% endif %}>
+                <strong>{{ ko }}</strong> <span class="text-muted">{{ desc }}</span>
+            </label>
+        </div>
+        {% endfor %}
+    </div>
+    <button type="submit" class="btn btn-default" id="btn-save" disabled>저장</button>
+    <span id="save-result"></span>
+</form>
+
+<h3>받은 알림</h3>
+<div id="alert-list">알림을 받기 시작하면 여기에 기록이 나옵니다.</div>
+
+<script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging-compat.js"></script>
+<script>
+var firebaseConfig = {{ firebase_config|safe }};
+var vapidKey = '{{ vapid_key }}';
+var csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+var statusText = document.getElementById('status');
+var token = null;
+var messaging = null;
+
+function api(method, url, data) {
+    return fetch(url, {
+        method: method,
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrftoken},
+        body: data ? JSON.stringify(data) : null
+    }).then(function(res) {
+        return res.json();
+    });
+}
+
+// 서버에 저장된 설정을 화면에 표시
+function showSetting(device) {
+    document.getElementById('enabled').checked = device.enabled;
+    document.getElementById('minutes').value = device.minutes;
+    var categories = device.categories.split(',');
+    document.querySelectorAll('[name=categories]').forEach(function(box) {
+        box.checked = categories.indexOf(box.value) >= 0;
+    });
+    document.getElementById('btn-save').disabled = false;
+    statusText.textContent = '이 브라우저는 탐지 알림을 받는 중입니다.';
+}
+
+// 알림 허용 → 기기 토큰 받기 → 서버에 등록
+function subscribe() {
+    Notification.requestPermission().then(function(permission) {
+        if (permission != 'granted') {
+            statusText.textContent = '알림이 차단되어 있습니다. 주소창 왼쪽 아이콘에서 알림을 허용해 주세요.';
+            return;
+        }
+        navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function() {
+            return navigator.serviceWorker.ready;  // 서비스 워커가 켜질 때까지 기다림
+        }).then(function(reg) {
+            return messaging.getToken({vapidKey: vapidKey, serviceWorkerRegistration: reg});
+        }).then(function(newToken) {
+            token = newToken;
+            return api('POST', '/api_root/Device/', {token: token, kind: 'web'});
+        }).then(function(device) {
+            showSetting(device);
+            loadAlerts();
+        }).catch(function(err) {
+            statusText.textContent = '알림 등록에 실패했습니다: ' + err;
+        });
+    });
+}
+
+// 이 브라우저가 받은 알림 기록
+function loadAlerts() {
+    api('GET', '/api_root/Alert/?token=' + encodeURIComponent(token)).then(function(alerts) {
+        var list = document.getElementById('alert-list');
+        list.innerHTML = '';
+        if (alerts.length == 0) {
+            list.textContent = '아직 받은 알림이 없습니다.';
+            return;
+        }
+        alerts.forEach(function(alert) {
+            var item = document.createElement('div');
+            item.className = 'alert-item';
+            var img = document.createElement('img');
+            img.src = alert.image;
+            var text = document.createElement('p');
+            text.textContent = new Date(alert.sent_date).toLocaleString('ko-KR') + ' · ' + alert.labels_ko;
+            if (!alert.is_read) {
+                text.textContent += ' (새 알림)';
+            }
+            item.appendChild(img);
+            item.appendChild(text);
+            list.appendChild(item);
+        });
+        api('POST', '/api_root/Alert/read_all/?token=' + encodeURIComponent(token));
+    });
+}
+
+document.getElementById('alert-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var minutes = parseInt(document.getElementById('minutes').value);
+    if (isNaN(minutes) || minutes < 0) {
+        document.getElementById('save-result').textContent = '분은 0 이상의 숫자로 입력해 주세요.';
+        return;
+    }
+    var categories = [];
+    document.querySelectorAll('[name=categories]:checked').forEach(function(box) {
+        categories.push(box.value);
+    });
+    api('POST', '/api_root/Device/', {
+        token: token,
+        kind: 'web',
+        categories: categories.join(','),
+        minutes: minutes,
+        enabled: document.getElementById('enabled').checked
+    }).then(function(device) {
+        showSetting(device);
+        document.getElementById('save-result').textContent = '저장했습니다.';
+    });
+});
+
+document.getElementById('btn-subscribe').addEventListener('click', subscribe);
+
+if (!firebaseConfig.apiKey) {
+    statusText.textContent = 'Firebase 설정 전입니다.';
+    document.getElementById('btn-subscribe').disabled = true;
+} else {
+    firebase.initializeApp(firebaseConfig);
+    Promise.resolve(firebase.messaging.isSupported()).then(function(supported) {
+        if (!supported) {
+            statusText.textContent = '이 브라우저에서는 웹 알림을 쓸 수 없습니다. (시크릿 창은 지원하지 않음)';
+            document.getElementById('btn-subscribe').disabled = true;
+            return;
+        }
+        messaging = firebase.messaging();
+        // 알림은 서비스 워커가 띄우고, 이 페이지는 기록만 다시 불러옴
+        navigator.serviceWorker.addEventListener('message', function(e) {
+            if (e.data == 'new-alert' && token) {
+                loadAlerts();
+            }
+        });
+        // 이미 허용했으면 바로 등록 상태 확인
+        if (Notification.permission == 'granted') {
+            subscribe();
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -1,9 +1,18 @@
+import json
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
-from .models import Post
+from .models import Post, Device, Alert
 from .forms import PostForm
-from rest_framework import viewsets
-from .serializers import PostSerializer
+from rest_framework import viewsets, mixins
+from rest_framework.authentication import TokenAuthentication, SessionAuthentication
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .serializers import PostSerializer, DeviceSerializer, AlertSerializer
+from .labels import CATEGORIES
+from .push import send_alert
 
 def post_list(request):
     posts = Post.objects.filter(
@@ -48,3 +57,58 @@ def js_test(request):
 class BlogImages(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
+
+    def perform_create(self, serializer):
+        post = serializer.save()
+        send_alert(post)  # 탐지 알림 보내기
+
+class DeviceViewSet(viewsets.ModelViewSet):
+    queryset = Device.objects.all()
+    serializer_class = DeviceSerializer
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'token'
+    lookup_value_regex = '[^/]+'
+
+    def create(self, request):
+        # 이미 등록된 기기면 설정만 바꿈 (같은 토큰이 동시에 와도 하나만 만들어짐)
+        token = request.data.get('token')
+        if not token:
+            return Response({'token': ['이 필드는 필수 항목입니다.']}, status=400)
+        device, created = Device.objects.get_or_create(token=token)
+        serializer = DeviceSerializer(device, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    @action(detail=False)
+    def categories(self, request):
+        # 알림 설정에서 고르는 종류 4가지
+        return Response([{'name': name, 'ko': ko, 'desc': desc} for name, ko, desc in CATEGORIES])
+
+class AlertViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    serializer_class = AlertSerializer
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # 기기 토큰으로 그 기기가 받은 알림만
+        token = self.request.query_params.get('token', '')
+        return Alert.objects.filter(device__token=token, is_sent=True).order_by('-sent_date')
+
+    @action(detail=False, methods=['post'])
+    def read_all(self, request):
+        self.get_queryset().update(is_read=True)
+        return Response({'result': 'ok'})
+
+@login_required
+def alert_setting(request):
+    return render(request, 'blog/alert_setting.html', {
+        'categories': CATEGORIES,
+        'firebase_config': json.dumps(settings.FIREBASE_CONFIG),
+        'vapid_key': settings.FIREBASE_VAPID_KEY,
+    })
+
+def firebase_sw(request):
+    # 웹 알림용 서비스 워커 (사이트 맨 위 주소에 있어야 함)
+    return render(request, 'blog/firebase-messaging-sw.js', content_type='application/javascript')
